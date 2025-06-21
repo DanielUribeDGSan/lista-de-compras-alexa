@@ -385,9 +385,8 @@ const LaunchRequestHandler = {
     );
   },
   handle(handlerInput) {
-    const speakOutput =
-      "¡Bienvenido a tu despensa inteligente! ¿Qué quieres hacer hoy? Puedes agregar productos, eliminar algo, ver tu lista o limpiarla completamente.";
-    const repromptOutput = "¿Qué quieres agregar o eliminar de tu despensa?";
+    const speakOutput = "¡Bienvenido a la despensa de Daniel!";
+    const repromptOutput = "¿Qué quieres hacer";
 
     return handlerInput.responseBuilder
       .speak(speakOutput)
