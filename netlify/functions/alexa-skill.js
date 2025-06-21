@@ -246,15 +246,16 @@ const LaunchRequestHandler = {
     );
   },
   handle(handlerInput) {
-    const speakOutput =
-      "Hola, bienvenido a tu despensa inteligente. Puedes agregar productos, eliminarlos, o limpiar toda la lista. ¿Qué quieres hacer?";
+    const speakOutput = "Has entrado a la despensa inteligente de Daniel Uribe";
 
-    return handlerInput.responseBuilder
-      .speak(speakOutput)
-      .reprompt(
-        'Puedes decir "agrega limones", "elimina pan" o "limpia la lista".'
-      )
-      .getResponse();
+    return (
+      handlerInput.responseBuilder
+        .speak(speakOutput)
+        //   .reprompt(
+        //     'Puedes decir "agrega limones", "elimina pan" o "limpia la lista".'
+        //   )
+        .getResponse()
+    );
   },
 };
 
