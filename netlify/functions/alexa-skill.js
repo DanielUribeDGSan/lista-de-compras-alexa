@@ -53,7 +53,7 @@ const AddProductIntentHandler = {
 
       const newItem = {
         name: productName,
-        category: "General", // Categoría por defecto
+        category: "pantry", // Categoría por defecto
         purchased: false,
         estimatedPrice: 0,
         quantity: parseInt(quantity) || 1,
@@ -194,6 +194,28 @@ exports.handler = async (event, context) => {
     };
   }
 
+  // Manejar peticiones GET (cuando alguien accede desde el navegador)
+  if (event.httpMethod === "GET") {
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({
+        message: "Alexa Skill Function is running!",
+        endpoint: "POST requests only",
+        timestamp: new Date().toISOString(),
+      }),
+    };
+  }
+
+  // Validar que existe body para peticiones POST
+  if (!event.body) {
+    return {
+      statusCode: 400,
+      headers,
+      body: JSON.stringify({ error: "No request body provided" }),
+    };
+  }
+
   try {
     const skill = skillBuilder.create();
     const requestBody = JSON.parse(event.body);
@@ -210,7 +232,10 @@ exports.handler = async (event, context) => {
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ error: "Error interno del servidor" }),
+      body: JSON.stringify({
+        error: "Error interno del servidor",
+        details: error.message,
+      }),
     };
   }
 };
