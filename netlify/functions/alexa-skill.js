@@ -11,8 +11,6 @@ if (!admin.apps.length) {
       project_id: process.env.FIREBASE_PROJECT_ID,
       private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID,
       private_key: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n"),
-      // private_key:
-      //   "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC849QjBQnmnIfL\nv+p2S6CWBlqnmas9g5nBPH4IXCAenZR/WpQKbGxn5kW6aZat7pRNdwfkDm+WLnvP\nu4JtEK54cILbgw/ifNW+Ot4uH9hXVV/Ixl6CS8/xI0RAxFzuCpVbVvj/OlChuMXp\n23zhGDOmvtvYH+Dptm0H74bOUwi+LxbrLVCm4mQb96h9HAJAVNptivgXrEDxJzyG\nq3sopZFmfiJecPSarHaHSvXcl8zNxV8OLltFoNUDraY7l/KXKWaYv26qKOpNIebp\nVClOuZXGwHwM1hNrZtYaPh+zB37aXnWS7eKQ9/HzE20U95nyjrkSSJyK01TQzvfH\nRsYrQttzAgMBAAECggEAVwuCgdTbmCtAJPO+317AlQI+moelMwbHPxZaWg3iO1mQ\nyhN6r0cBueuS7HGmH2cXbo9Q0paYc5PeOH+Hfi02yYfHtdKy6kNu2GgWZRkFwFE2\nf7ZybQb0v4Hp/RLAZG36IAp3Wl6MM8qLYdZkuPJHMys28mTWZ71Kh2KpM8FuAP21\nPWeeVzByj4233Bvzv7qw//2Wxw6DAQ3Et/XPyk9q3YGcfUO91OJtPsYdvxAWF3rV\nsMvURMWO5JiC/TeMCItKq/XIPi1MXgqoMzs0E3L+4pYrvUVseaWebeYgxx5Nf3cJ\nfFfiCTjIh4T6a/IuizLnYa9wIsNoeRKJ9qGOdCpBeQKBgQDppOD96c7W+jbIF9GP\nFNSv1IpDUmUIh0d5oactTy47r51eYvq8aH+siQumctsBMF3a3EkwZftD61DX9nb6\nuCflbqxFFyJes/FRJpmXXc1GscyuHkDULkjNH/wAngZt6TpLiGItVir7cBwQNQpK\nlVtJCrFr+fGYM62Hn9AdxC99NQKBgQDO9rI2n59H3I6bbpdXfykOJzEVbn4wsfO3\njic4mQaWPQpnARAVuZ6Ri9HFneuk1p8jVAAYzhW22S71q9n3dHp62w19aFvKDPh8\nNpuv/CMOWZyjLCwSf7vRFlydBBNppHdnfi34m9vKXyYI/dO9mSbWKJMHfKbzMK6B\nH2xgA+2TBwKBgAWVOQMYOScN5400dH90wfhJndwp9dwUT3Lql/IPOE2YzqvYtaEW\n5iYbSDn7+Ju4qiV2qhEL/ssKrm3ap9Ep4VosINWtzdZxeky0HWtuhF8yFG/8rRPk\n3zx3jS/+lqy9q/TuF1p5+qDzdtg0TECn/Pxr0v1/hXRbl8Pr3682ZuQZAoGBAIWN\ntnT/Tna+AhyVIf5pZWHnsonk8nOT8fTqO68POKvsmfDcQ7fxPz0m3+hJPw3xHWJb\ny3A2VNbYkbAhBJflxz/OaYcat9jLw/HL/21yJGEXPLgjQhFx8g48Aumj/q72XcMg\nLqQ2V3/hJJc6zM+Vq/UY28BCFS3rpUBXucS/5CgzAoGBALaVbQWr0Fvr+sk7oVWn\n9VHpF0Hg0MPE6i/UrbIoMx/tMCUC9pPCNCh3u0TF8HroLwfwQRwar+w7HWcbZuVk\nxieiUfBE0fV6Kc1lTX8r2v+K+6kSi182Sl2QYdzSG2qZe/az/8jZ/iqOHFeercPt\nW2qQh+98yGRMr93sdaynzvh8\n-----END PRIVATE KEY-----\n",
       client_email: process.env.FIREBASE_CLIENT_EMAIL,
       client_id: process.env.FIREBASE_CLIENT_ID,
       auth_uri: "https://accounts.google.com/o/oauth2/auth",
@@ -69,15 +67,22 @@ const AddProductIntentHandler = {
 
       await comprasRef.add(newItem);
 
-      const speakOutput = `He agregado ${quantity} ${unit} de ${productName} a tu despensa.`;
+      const speakOutput = `He agregado ${quantity} ${unit} de ${productName} a tu despensa. ¿Quieres agregar algo más, eliminar algún producto, o prefieres que termine?`;
+      const repromptOutput = "¿Hay algo más que quieras hacer con tu despensa?";
 
-      return handlerInput.responseBuilder.speak(speakOutput).getResponse();
+      return handlerInput.responseBuilder
+        .speak(speakOutput)
+        .reprompt(repromptOutput)
+        .getResponse();
     } catch (error) {
       console.error("Error:", error);
       const speakOutput =
-        "Lo siento, hubo un error al agregar el producto a tu despensa.";
+        "Lo siento, hubo un error al agregar el producto a tu despensa. ¿Quieres intentar de nuevo?";
 
-      return handlerInput.responseBuilder.speak(speakOutput).getResponse();
+      return handlerInput.responseBuilder
+        .speak(speakOutput)
+        .reprompt("¿Qué te gustaría hacer?")
+        .getResponse();
     }
   },
 };
@@ -112,10 +117,12 @@ const RemoveProductIntentHandler = {
         .where("name", "<=", productName.toLowerCase() + "\uf8ff")
         .get();
 
+      let speakOutput;
+      let found = false;
+
       if (snapshot.empty) {
         // Buscar por coincidencia parcial si no encuentra exacto
         const allSnapshot = await comprasRef.get();
-        let found = false;
 
         for (const doc of allSnapshot.docs) {
           const data = doc.data();
@@ -127,24 +134,31 @@ const RemoveProductIntentHandler = {
         }
 
         if (found) {
-          const speakOutput = `He eliminado ${productName} de tu despensa.`;
-          return handlerInput.responseBuilder.speak(speakOutput).getResponse();
+          speakOutput = `He eliminado ${productName} de tu despensa. ¿Quieres hacer algo más?`;
         } else {
-          const speakOutput = `No encontré ${productName} en tu despensa.`;
-          return handlerInput.responseBuilder.speak(speakOutput).getResponse();
+          speakOutput = `No encontré ${productName} en tu despensa. ¿Quieres intentar con otro producto o hacer algo más?`;
         }
       } else {
         // Eliminar el primer producto encontrado
         const doc = snapshot.docs[0];
         await doc.ref.delete();
-
-        const speakOutput = `He eliminado ${productName} de tu despensa.`;
-        return handlerInput.responseBuilder.speak(speakOutput).getResponse();
+        speakOutput = `He eliminado ${productName} de tu despensa. ¿Hay algo más que quieras hacer?`;
       }
+
+      const repromptOutput = "¿Qué más te gustaría hacer con tu despensa?";
+
+      return handlerInput.responseBuilder
+        .speak(speakOutput)
+        .reprompt(repromptOutput)
+        .getResponse();
     } catch (error) {
       console.error("Error:", error);
-      const speakOutput = "Lo siento, hubo un error al eliminar el producto.";
-      return handlerInput.responseBuilder.speak(speakOutput).getResponse();
+      const speakOutput =
+        "Lo siento, hubo un error al eliminar el producto. ¿Quieres intentar de nuevo?";
+      return handlerInput.responseBuilder
+        .speak(speakOutput)
+        .reprompt("¿Qué te gustaría hacer?")
+        .getResponse();
     }
   },
 };
@@ -163,8 +177,12 @@ const ClearListIntentHandler = {
       const snapshot = await comprasRef.get();
 
       if (snapshot.empty) {
-        const speakOutput = "Tu despensa ya está vacía.";
-        return handlerInput.responseBuilder.speak(speakOutput).getResponse();
+        const speakOutput =
+          "Tu despensa ya está vacía. ¿Quieres agregar algunos productos?";
+        return handlerInput.responseBuilder
+          .speak(speakOutput)
+          .reprompt("¿Qué te gustaría hacer?")
+          .getResponse();
       }
 
       // Eliminar todos los documentos
@@ -177,18 +195,25 @@ const ClearListIntentHandler = {
       const count = snapshot.size;
       const speakOutput = `He limpiado tu despensa. Eliminé ${count} ${
         count === 1 ? "producto" : "productos"
-      }.`;
+      }. ¿Quieres agregar nuevos productos o hacer algo más?`;
 
-      return handlerInput.responseBuilder.speak(speakOutput).getResponse();
+      return handlerInput.responseBuilder
+        .speak(speakOutput)
+        .reprompt("¿Qué más te gustaría hacer?")
+        .getResponse();
     } catch (error) {
       console.error("Error:", error);
-      const speakOutput = "Lo siento, hubo un error al limpiar la despensa.";
-      return handlerInput.responseBuilder.speak(speakOutput).getResponse();
+      const speakOutput =
+        "Lo siento, hubo un error al limpiar la despensa. ¿Quieres intentar de nuevo?";
+      return handlerInput.responseBuilder
+        .speak(speakOutput)
+        .reprompt("¿Qué te gustaría hacer?")
+        .getResponse();
     }
   },
 };
 
-// Intent para listar productos (bonus)
+// Intent para listar productos (resumen)
 const ListProductsIntentHandler = {
   canHandle(handlerInput) {
     return (
@@ -203,8 +228,11 @@ const ListProductsIntentHandler = {
 
       if (snapshot.empty) {
         const speakOutput =
-          "Tu despensa está vacía. Puedes agregar productos diciendo 'agrega leche' por ejemplo.";
-        return handlerInput.responseBuilder.speak(speakOutput).getResponse();
+          "Tu despensa está vacía. ¿Quieres agregar algunos productos?";
+        return handlerInput.responseBuilder
+          .speak(speakOutput)
+          .reprompt("¿Qué productos te gustaría agregar?")
+          .getResponse();
       }
 
       const products = [];
@@ -216,26 +244,136 @@ const ListProductsIntentHandler = {
 
       let speakOutput;
       if (products.length === 1) {
-        speakOutput = `Tienes ${products[0]} en tu despensa.`;
+        speakOutput = `Tienes ${products[0]} en tu despensa. ¿Quieres agregar algo más?`;
       } else if (products.length <= 5) {
         const lastProduct = products.pop();
         speakOutput = `En tu despensa tienes: ${products.join(
           ", "
-        )} y ${lastProduct}.`;
+        )} y ${lastProduct}. ¿Hay algo más que quieras hacer?`;
       } else {
         speakOutput = `Tienes ${
           products.length
         } productos en tu despensa. Los primeros son: ${products
           .slice(0, 3)
-          .join(", ")} y otros más.`;
+          .join(
+            ", "
+          )} y otros más. ¿Quieres que te lea toda la lista completa o prefieres hacer algo más?`;
       }
 
-      return handlerInput.responseBuilder.speak(speakOutput).getResponse();
+      return handlerInput.responseBuilder
+        .speak(speakOutput)
+        .reprompt("¿Qué más te gustaría hacer con tu despensa?")
+        .getResponse();
     } catch (error) {
       console.error("Error:", error);
-      const speakOutput = "Lo siento, hubo un error al leer tu despensa.";
-      return handlerInput.responseBuilder.speak(speakOutput).getResponse();
+      const speakOutput =
+        "Lo siento, hubo un error al leer tu despensa. ¿Quieres intentar de nuevo?";
+      return handlerInput.responseBuilder
+        .speak(speakOutput)
+        .reprompt("¿Qué te gustaría hacer?")
+        .getResponse();
     }
+  },
+};
+
+// Intent para leer toda la lista completa
+const ReadCompleteListIntentHandler = {
+  canHandle(handlerInput) {
+    return (
+      Alexa.getRequestType(handlerInput.requestEnvelope) === "IntentRequest" &&
+      Alexa.getIntentName(handlerInput.requestEnvelope) ===
+        "ReadCompleteListIntent"
+    );
+  },
+  async handle(handlerInput) {
+    try {
+      const comprasRef = getComprasRef();
+      const snapshot = await comprasRef.orderBy("createdAt", "desc").get();
+
+      if (snapshot.empty) {
+        const speakOutput =
+          "Tu despensa está vacía. No hay productos registrados. ¿Quieres agregar algunos productos?";
+        return handlerInput.responseBuilder
+          .speak(speakOutput)
+          .reprompt("¿Qué productos te gustaría agregar?")
+          .getResponse();
+      }
+
+      const products = [];
+      let totalItems = 0;
+
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        const productText = `${data.quantity} ${data.unit} de ${data.name}`;
+        products.push(productText);
+        totalItems += parseInt(data.quantity) || 1;
+      });
+
+      let speakOutput;
+
+      if (products.length === 1) {
+        speakOutput = `Tu lista de compras completa tiene un solo producto: ${
+          products[0]
+        }. En total tienes ${totalItems} ${
+          totalItems === 1 ? "artículo" : "artículos"
+        }. ¿Quieres hacer algo más?`;
+      } else {
+        // Para listas largas, agregar pausas para mejor comprensión
+        const productList = products.join(", <break time='0.3s'/> ");
+        speakOutput = `Tu lista de compras completa tiene ${
+          products.length
+        } productos: <break time='0.5s'/> ${productList}. <break time='0.5s'/> En total tienes ${totalItems} ${
+          totalItems === 1 ? "artículo" : "artículos"
+        } en tu despensa. ¿Hay algo más que quieras hacer?`;
+      }
+
+      return handlerInput.responseBuilder
+        .speak(speakOutput)
+        .reprompt("¿Qué más te gustaría hacer con tu despensa?")
+        .getResponse();
+    } catch (error) {
+      console.error("Error:", error);
+      const speakOutput =
+        "Lo siento, hubo un error al leer tu lista completa. ¿Quieres intentar de nuevo?";
+      return handlerInput.responseBuilder
+        .speak(speakOutput)
+        .reprompt("¿Qué te gustaría hacer?")
+        .getResponse();
+    }
+  },
+};
+
+// Intent para manejar respuestas afirmativas
+const YesIntentHandler = {
+  canHandle(handlerInput) {
+    return (
+      Alexa.getRequestType(handlerInput.requestEnvelope) === "IntentRequest" &&
+      Alexa.getIntentName(handlerInput.requestEnvelope) === "AMAZON.YesIntent"
+    );
+  },
+  handle(handlerInput) {
+    const speakOutput =
+      "Perfecto. ¿Qué quieres hacer? Puedes agregar productos, eliminar algo, limpiar la lista o ver qué hay en tu despensa.";
+    const repromptOutput = "¿Qué te gustaría hacer con tu despensa?";
+
+    return handlerInput.responseBuilder
+      .speak(speakOutput)
+      .reprompt(repromptOutput)
+      .getResponse();
+  },
+};
+
+// Intent para manejar respuestas negativas
+const NoIntentHandler = {
+  canHandle(handlerInput) {
+    return (
+      Alexa.getRequestType(handlerInput.requestEnvelope) === "IntentRequest" &&
+      Alexa.getIntentName(handlerInput.requestEnvelope) === "AMAZON.NoIntent"
+    );
+  },
+  handle(handlerInput) {
+    const speakOutput = "¡Perfecto! Tu despensa está lista. ¡Hasta luego!";
+    return handlerInput.responseBuilder.speak(speakOutput).getResponse();
   },
 };
 
@@ -247,11 +385,13 @@ const LaunchRequestHandler = {
     );
   },
   handle(handlerInput) {
-    const speakOutput = "Has entrado a la despensa inteligente de Daniel Uribe";
+    const speakOutput =
+      "¡Bienvenido a tu despensa inteligente! ¿Qué quieres hacer hoy? Puedes agregar productos, eliminar algo, ver tu lista o limpiarla completamente.";
+    const repromptOutput = "¿Qué quieres agregar o eliminar de tu despensa?";
 
     return handlerInput.responseBuilder
       .speak(speakOutput)
-      .reprompt("¿Que quieres agregar o eliminar?")
+      .reprompt(repromptOutput)
       .getResponse();
   },
 };
@@ -266,7 +406,7 @@ const HelpIntentHandler = {
   },
   handle(handlerInput) {
     const speakOutput =
-      'Con tu despensa inteligente puedes: agregar productos diciendo "agrega leche", eliminar productos diciendo "elimina pan", limpiar toda la lista diciendo "limpia la lista", o ver qué hay diciendo "qué hay en la lista". ¿Qué quieres hacer?';
+      'Con tu despensa inteligente puedes: agregar productos diciendo "agrega leche", eliminar productos diciendo "elimina pan", limpiar toda la lista diciendo "limpia la lista", ver un resumen diciendo "qué hay en la lista", o escuchar toda tu lista completa diciendo "lee toda mi lista". ¿Qué quieres hacer?';
 
     return handlerInput.responseBuilder
       .speak(speakOutput)
@@ -316,12 +456,12 @@ const ErrorHandler = {
   },
   handle(handlerInput, error) {
     const speakOutput =
-      "Lo siento, tuve problemas para hacer lo que pediste. Inténtalo de nuevo.";
+      "Lo siento, tuve problemas para hacer lo que pediste. ¿Quieres intentarlo de nuevo?";
     console.log(`~~~~ Error handled: ${JSON.stringify(error)}`);
 
     return handlerInput.responseBuilder
       .speak(speakOutput)
-      .reprompt(speakOutput)
+      .reprompt("¿Qué te gustaría hacer?")
       .getResponse();
   },
 };
@@ -334,6 +474,9 @@ const skillBuilder = Alexa.SkillBuilders.custom()
     RemoveProductIntentHandler,
     ClearListIntentHandler,
     ListProductsIntentHandler,
+    ReadCompleteListIntentHandler,
+    YesIntentHandler,
+    NoIntentHandler,
     HelpIntentHandler,
     CancelAndStopIntentHandler,
     SessionEndedRequestHandler
@@ -367,7 +510,9 @@ exports.handler = async (event, context) => {
           "Add products",
           "Remove products",
           "Clear list",
-          "List products",
+          "List products (summary)",
+          "Read complete list",
+          "Conversational flow",
         ],
         timestamp: new Date().toISOString(),
       }),
