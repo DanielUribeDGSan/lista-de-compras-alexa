@@ -177,16 +177,21 @@ const skillBuilder = Alexa.SkillBuilders.custom()
   .addErrorHandlers(ErrorHandler);
 
 // Función de Netlify
+
 exports.handler = async (event, context) => {
-  // Configurar headers CORS
+  console.log("=== Request recibido ===");
+  console.log("Method:", event.httpMethod);
+  console.log("Body:", event.body);
+
+  // Headers CORS
   const headers = {
     "Content-Type": "application/json",
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers": "Content-Type",
-    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
   };
 
-  // Manejar preflight requests
+  // Manejar OPTIONS
   if (event.httpMethod === "OPTIONS") {
     return {
       statusCode: 200,
@@ -195,46 +200,51 @@ exports.handler = async (event, context) => {
     };
   }
 
-  // Manejar peticiones GET (cuando alguien accede desde el navegador)
+  // Manejar GET (test browser)
   if (event.httpMethod === "GET") {
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({
-        message: "Alexa Skill Function is running!",
-        endpoint: "POST requests only",
+        message: "Function works!",
         timestamp: new Date().toISOString(),
       }),
     };
   }
 
-  // Validar que existe body para peticiones POST
-  if (!event.body) {
-    return {
-      statusCode: 400,
-      headers,
-      body: JSON.stringify({ error: "No request body provided" }),
-    };
-  }
-
   try {
-    const skill = skillBuilder.create();
-    const requestBody = JSON.parse(event.body);
+    // Parse del request de Alexa
+    const requestBody = JSON.parse(event.body || "{}");
+    console.log("Parsed request:", JSON.stringify(requestBody, null, 2));
 
-    const response = await skill.invoke(requestBody);
+    // Respuesta válida para Alexa
+    const alexaResponse = {
+      version: "1.0",
+      response: {
+        outputSpeech: {
+          type: "PlainText",
+          text: "Hola desde tu despensa inteligente. La función está funcionando correctamente.",
+        },
+        shouldEndSession: false,
+      },
+    };
+
+    console.log("Sending response:", JSON.stringify(alexaResponse, null, 2));
 
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify(response),
+      body: JSON.stringify(alexaResponse),
     };
   } catch (error) {
-    console.error("Error en la función:", error);
+    console.error("ERROR COMPLETO:", error);
+    console.error("ERROR STACK:", error.stack);
+
     return {
       statusCode: 500,
       headers,
       body: JSON.stringify({
-        error: "Error interno del servidor",
+        error: "Internal server error",
         details: error.message,
       }),
     };
