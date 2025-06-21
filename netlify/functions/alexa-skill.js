@@ -177,21 +177,16 @@ const skillBuilder = Alexa.SkillBuilders.custom()
   .addErrorHandlers(ErrorHandler);
 
 // Función de Netlify
-
 exports.handler = async (event, context) => {
-  console.log("=== Request recibido ===");
-  console.log("Method:", event.httpMethod);
-  console.log("Body:", event.body);
-
-  // Headers CORS
+  // Configurar headers CORS
   const headers = {
     "Content-Type": "application/json",
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers": "Content-Type",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE",
   };
 
-  // Manejar OPTIONS
+  // Manejar preflight requests
   if (event.httpMethod === "OPTIONS") {
     return {
       statusCode: 200,
@@ -200,51 +195,46 @@ exports.handler = async (event, context) => {
     };
   }
 
-  // Manejar GET (test browser)
+  // Manejar peticiones GET (cuando alguien accede desde el navegador)
   if (event.httpMethod === "GET") {
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({
-        message: "Function works!",
+        message: "Alexa Skill Function is running!",
+        endpoint: "POST requests only",
         timestamp: new Date().toISOString(),
       }),
     };
   }
 
-  try {
-    // Parse del request de Alexa
-    const requestBody = JSON.parse(event.body || "{}");
-    console.log("Parsed request:", JSON.stringify(requestBody, null, 2));
-
-    // Respuesta válida para Alexa
-    const alexaResponse = {
-      version: "1.0",
-      response: {
-        outputSpeech: {
-          type: "PlainText",
-          text: "Hola desde tu despensa inteligente. La función está funcionando correctamente.",
-        },
-        shouldEndSession: false,
-      },
+  // Validar que existe body para peticiones POST
+  if (!event.body) {
+    return {
+      statusCode: 400,
+      headers,
+      body: JSON.stringify({ error: "No request body provided" }),
     };
+  }
 
-    console.log("Sending response:", JSON.stringify(alexaResponse, null, 2));
+  try {
+    const skill = skillBuilder.create();
+    const requestBody = JSON.parse(event.body);
+
+    const response = await skill.invoke(requestBody);
 
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify(alexaResponse),
+      body: JSON.stringify(response),
     };
   } catch (error) {
-    console.error("ERROR COMPLETO:", error);
-    console.error("ERROR STACK:", error.stack);
-
+    console.error("Error en la función:", error);
     return {
       statusCode: 500,
       headers,
       body: JSON.stringify({
-        error: "Internal server error",
+        error: "Error interno del servidor",
         details: error.message,
       }),
     };
