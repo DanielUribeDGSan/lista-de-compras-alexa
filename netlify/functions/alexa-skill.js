@@ -67,7 +67,7 @@ const AddProductIntentHandler = {
 
       await comprasRef.add(newItem);
 
-      const speakOutput = `He agregado ${quantity} ${unit} de ${productName} a tu despensa. ¿Quieres agregar algo más, eliminar algún producto?`;
+      const speakOutput = `He agregado ${quantity} ${unit} de ${productName} a tu despensa. ¿Quieres agregar algo más o eliminar algún producto?`;
       const repromptOutput = "¿Hay algo más que quieras hacer con tu despensa?";
 
       return handlerInput.responseBuilder
