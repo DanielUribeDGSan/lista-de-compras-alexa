@@ -248,14 +248,10 @@ const LaunchRequestHandler = {
   handle(handlerInput) {
     const speakOutput = "Has entrado a la despensa inteligente de Daniel Uribe";
 
-    return (
-      handlerInput.responseBuilder
-        .speak(speakOutput)
-        //   .reprompt(
-        //     'Puedes decir "agrega limones", "elimina pan" o "limpia la lista".'
-        //   )
-        .getResponse()
-    );
+    return handlerInput.responseBuilder
+      .speak(speakOutput)
+      .reprompt("¿Que quieres agregar o eliminar?")
+      .getResponse();
   },
 };
 
