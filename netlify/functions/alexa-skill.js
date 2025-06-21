@@ -26,10 +26,18 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 
-// Constantes de Firebase (las mismas que en tu React)
+// Constantes de Firebase
 const COLLECTION_NAME = "col-sala";
 const SUBCOLLECTION_NAME = "lista-super";
 const ITEMS_COLLECTION = "compras";
+
+// Helper function para obtener referencia de la colección
+function getComprasRef() {
+  return db
+    .collection(COLLECTION_NAME)
+    .doc(SUBCOLLECTION_NAME)
+    .collection(ITEMS_COLLECTION);
+}
 
 // Intent para agregar productos
 const AddProductIntentHandler = {
@@ -46,15 +54,11 @@ const AddProductIntentHandler = {
       const quantity = slots.quantity?.value || "1";
       const unit = slots.unit?.value || "unidad";
 
-      // Agregar a Firebase
-      const comprasRef = db
-        .collection(COLLECTION_NAME)
-        .doc(SUBCOLLECTION_NAME)
-        .collection(ITEMS_COLLECTION);
+      const comprasRef = getComprasRef();
 
       const newItem = {
         name: productName,
-        category: "pantry", // Categoría por defecto
+        category: "pantry",
         purchased: false,
         estimatedPrice: 0,
         quantity: parseInt(quantity) || 1,
@@ -77,6 +81,163 @@ const AddProductIntentHandler = {
   },
 };
 
+// Intent para eliminar productos
+const RemoveProductIntentHandler = {
+  canHandle(handlerInput) {
+    return (
+      Alexa.getRequestType(handlerInput.requestEnvelope) === "IntentRequest" &&
+      Alexa.getIntentName(handlerInput.requestEnvelope) ===
+        "RemoveProductIntent"
+    );
+  },
+  async handle(handlerInput) {
+    try {
+      const slots = handlerInput.requestEnvelope.request.intent.slots;
+      const productName = slots.product?.value || "";
+
+      if (!productName) {
+        const speakOutput = "¿Qué producto quieres eliminar?";
+        return handlerInput.responseBuilder
+          .speak(speakOutput)
+          .reprompt(speakOutput)
+          .getResponse();
+      }
+
+      const comprasRef = getComprasRef();
+
+      // Buscar el producto por nombre (case insensitive)
+      const snapshot = await comprasRef
+        .where("name", ">=", productName.toLowerCase())
+        .where("name", "<=", productName.toLowerCase() + "\uf8ff")
+        .get();
+
+      if (snapshot.empty) {
+        // Buscar por coincidencia parcial si no encuentra exacto
+        const allSnapshot = await comprasRef.get();
+        let found = false;
+
+        for (const doc of allSnapshot.docs) {
+          const data = doc.data();
+          if (data.name.toLowerCase().includes(productName.toLowerCase())) {
+            await doc.ref.delete();
+            found = true;
+            break;
+          }
+        }
+
+        if (found) {
+          const speakOutput = `He eliminado ${productName} de tu despensa.`;
+          return handlerInput.responseBuilder.speak(speakOutput).getResponse();
+        } else {
+          const speakOutput = `No encontré ${productName} en tu despensa.`;
+          return handlerInput.responseBuilder.speak(speakOutput).getResponse();
+        }
+      } else {
+        // Eliminar el primer producto encontrado
+        const doc = snapshot.docs[0];
+        await doc.ref.delete();
+
+        const speakOutput = `He eliminado ${productName} de tu despensa.`;
+        return handlerInput.responseBuilder.speak(speakOutput).getResponse();
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      const speakOutput = "Lo siento, hubo un error al eliminar el producto.";
+      return handlerInput.responseBuilder.speak(speakOutput).getResponse();
+    }
+  },
+};
+
+// Intent para limpiar toda la lista
+const ClearListIntentHandler = {
+  canHandle(handlerInput) {
+    return (
+      Alexa.getRequestType(handlerInput.requestEnvelope) === "IntentRequest" &&
+      Alexa.getIntentName(handlerInput.requestEnvelope) === "ClearListIntent"
+    );
+  },
+  async handle(handlerInput) {
+    try {
+      const comprasRef = getComprasRef();
+      const snapshot = await comprasRef.get();
+
+      if (snapshot.empty) {
+        const speakOutput = "Tu despensa ya está vacía.";
+        return handlerInput.responseBuilder.speak(speakOutput).getResponse();
+      }
+
+      // Eliminar todos los documentos
+      const batch = db.batch();
+      snapshot.docs.forEach((doc) => {
+        batch.delete(doc.ref);
+      });
+      await batch.commit();
+
+      const count = snapshot.size;
+      const speakOutput = `He limpiado tu despensa. Eliminé ${count} ${
+        count === 1 ? "producto" : "productos"
+      }.`;
+
+      return handlerInput.responseBuilder.speak(speakOutput).getResponse();
+    } catch (error) {
+      console.error("Error:", error);
+      const speakOutput = "Lo siento, hubo un error al limpiar la despensa.";
+      return handlerInput.responseBuilder.speak(speakOutput).getResponse();
+    }
+  },
+};
+
+// Intent para listar productos (bonus)
+const ListProductsIntentHandler = {
+  canHandle(handlerInput) {
+    return (
+      Alexa.getRequestType(handlerInput.requestEnvelope) === "IntentRequest" &&
+      Alexa.getIntentName(handlerInput.requestEnvelope) === "ListProductsIntent"
+    );
+  },
+  async handle(handlerInput) {
+    try {
+      const comprasRef = getComprasRef();
+      const snapshot = await comprasRef.orderBy("createdAt", "desc").get();
+
+      if (snapshot.empty) {
+        const speakOutput =
+          "Tu despensa está vacía. Puedes agregar productos diciendo 'agrega leche' por ejemplo.";
+        return handlerInput.responseBuilder.speak(speakOutput).getResponse();
+      }
+
+      const products = [];
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        const productText = `${data.quantity} ${data.unit} de ${data.name}`;
+        products.push(productText);
+      });
+
+      let speakOutput;
+      if (products.length === 1) {
+        speakOutput = `Tienes ${products[0]} en tu despensa.`;
+      } else if (products.length <= 5) {
+        const lastProduct = products.pop();
+        speakOutput = `En tu despensa tienes: ${products.join(
+          ", "
+        )} y ${lastProduct}.`;
+      } else {
+        speakOutput = `Tienes ${
+          products.length
+        } productos en tu despensa. Los primeros son: ${products
+          .slice(0, 3)
+          .join(", ")} y otros más.`;
+      }
+
+      return handlerInput.responseBuilder.speak(speakOutput).getResponse();
+    } catch (error) {
+      console.error("Error:", error);
+      const speakOutput = "Lo siento, hubo un error al leer tu despensa.";
+      return handlerInput.responseBuilder.speak(speakOutput).getResponse();
+    }
+  },
+};
+
 // Intent de bienvenida
 const LaunchRequestHandler = {
   canHandle(handlerInput) {
@@ -86,11 +247,13 @@ const LaunchRequestHandler = {
   },
   handle(handlerInput) {
     const speakOutput =
-      'Hola, bienvenido a tu despensa inteligente. Puedes decir "agrega leche" o "agrega dos kilos de arroz" para añadir productos.';
+      "Hola, bienvenido a tu despensa inteligente. Puedes agregar productos, eliminarlos, o limpiar toda la lista. ¿Qué quieres hacer?";
 
     return handlerInput.responseBuilder
       .speak(speakOutput)
-      .reprompt(speakOutput)
+      .reprompt(
+        'Puedes decir "agrega limones", "elimina pan" o "limpia la lista".'
+      )
       .getResponse();
   },
 };
@@ -105,11 +268,11 @@ const HelpIntentHandler = {
   },
   handle(handlerInput) {
     const speakOutput =
-      'Puedes decir "agrega leche", "agrega dos kilos de arroz" o "agrega tres litros de agua" para añadir productos a tu despensa.';
+      'Con tu despensa inteligente puedes: agregar productos diciendo "agrega leche", eliminar productos diciendo "elimina pan", limpiar toda la lista diciendo "limpia la lista", o ver qué hay diciendo "qué hay en la lista". ¿Qué quieres hacer?';
 
     return handlerInput.responseBuilder
       .speak(speakOutput)
-      .reprompt(speakOutput)
+      .reprompt("¿Qué quieres hacer con tu despensa?")
       .getResponse();
   },
 };
@@ -126,8 +289,8 @@ const CancelAndStopIntentHandler = {
     );
   },
   handle(handlerInput) {
-    const speakOutput = "¡Hasta luego!";
-
+    const speakOutput =
+      "¡Hasta luego! Tu despensa estará lista cuando regreses.";
     return handlerInput.responseBuilder.speak(speakOutput).getResponse();
   },
 };
@@ -170,6 +333,9 @@ const skillBuilder = Alexa.SkillBuilders.custom()
   .addRequestHandlers(
     LaunchRequestHandler,
     AddProductIntentHandler,
+    RemoveProductIntentHandler,
+    ClearListIntentHandler,
+    ListProductsIntentHandler,
     HelpIntentHandler,
     CancelAndStopIntentHandler,
     SessionEndedRequestHandler
@@ -178,7 +344,6 @@ const skillBuilder = Alexa.SkillBuilders.custom()
 
 // Función de Netlify
 exports.handler = async (event, context) => {
-  // Configurar headers CORS
   const headers = {
     "Content-Type": "application/json",
     "Access-Control-Allow-Origin": "*",
@@ -186,7 +351,6 @@ exports.handler = async (event, context) => {
     "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE",
   };
 
-  // Manejar preflight requests
   if (event.httpMethod === "OPTIONS") {
     return {
       statusCode: 200,
@@ -195,20 +359,23 @@ exports.handler = async (event, context) => {
     };
   }
 
-  // Manejar peticiones GET (cuando alguien accede desde el navegador)
   if (event.httpMethod === "GET") {
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({
         message: "Alexa Skill Function is running!",
-        endpoint: "POST requests only",
+        features: [
+          "Add products",
+          "Remove products",
+          "Clear list",
+          "List products",
+        ],
         timestamp: new Date().toISOString(),
       }),
     };
   }
 
-  // Validar que existe body para peticiones POST
   if (!event.body) {
     return {
       statusCode: 400,
