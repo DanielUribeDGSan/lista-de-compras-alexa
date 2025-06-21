@@ -385,8 +385,9 @@ const LaunchRequestHandler = {
     );
   },
   handle(handlerInput) {
-    const speakOutput = "¡Bienvenido a la despensa de Daniel!";
-    const repromptOutput = "¿Qué quieres hacer";
+    const speakOutput =
+      "¡Bienvenido a la despensa de Daniel, ¿Que quieres hacer?!";
+    const repromptOutput = "";
 
     return handlerInput.responseBuilder
       .speak(speakOutput)
