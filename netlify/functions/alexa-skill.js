@@ -67,8 +67,9 @@ const AddProductIntentHandler = {
 
       await comprasRef.add(newItem);
 
-      const speakOutput = `He agregado ${quantity} ${unit} de ${productName} a tu despensa. ¿Quieres agregar algo más o eliminar algún producto?`;
-      const repromptOutput = "¿Hay algo más que quieras hacer con tu despensa?";
+      const speakOutput = `He agregado ${quantity} ${unit} de ${productName} a tu despensa. ¿Quieres agregar algo más, eliminar algún producto, o algo diferente?`;
+      const repromptOutput =
+        "Puedes decir: agrega algo, elimina algo, ve la lista, o dime nada si ya terminaste.";
 
       return handlerInput.responseBuilder
         .speak(speakOutput)
@@ -163,12 +164,54 @@ const RemoveProductIntentHandler = {
   },
 };
 
-// Intent para limpiar toda la lista
+// Intent para manejar "nada" y equivalentes
+const NothingIntentHandler = {
+  canHandle(handlerInput) {
+    return (
+      Alexa.getRequestType(handlerInput.requestEnvelope) === "IntentRequest" &&
+      Alexa.getIntentName(handlerInput.requestEnvelope) === "NothingIntent"
+    );
+  },
+  handle(handlerInput) {
+    const speakOutput = "¡Perfecto! Tu despensa está lista. ¡Hasta luego!";
+    return handlerInput.responseBuilder.speak(speakOutput).getResponse();
+  },
+};
+
+// Intent para confirmar limpieza de lista
 const ClearListIntentHandler = {
   canHandle(handlerInput) {
     return (
       Alexa.getRequestType(handlerInput.requestEnvelope) === "IntentRequest" &&
       Alexa.getIntentName(handlerInput.requestEnvelope) === "ClearListIntent"
+    );
+  },
+  handle(handlerInput) {
+    // Establecer atributos de sesión para confirmación
+    const attributesManager = handlerInput.attributesManager;
+    attributesManager.setSessionAttributes({
+      waitingForClearConfirmation: true,
+    });
+
+    const speakOutput =
+      "¿Estás seguro de que quieres limpiar toda tu despensa? Esto eliminará todos los productos. Di sí para confirmar o no para cancelar.";
+    const repromptOutput =
+      "¿Quieres limpiar toda la lista? Di sí para confirmar o no para cancelar.";
+
+    return handlerInput.responseBuilder
+      .speak(speakOutput)
+      .reprompt(repromptOutput)
+      .getResponse();
+  },
+};
+
+// Intent para ejecutar la limpieza confirmada
+const ExecuteClearListIntentHandler = {
+  canHandle(handlerInput) {
+    return (
+      Alexa.getRequestType(handlerInput.requestEnvelope) === "IntentRequest" &&
+      Alexa.getIntentName(handlerInput.requestEnvelope) ===
+        "ExecuteClearListIntent"
     );
   },
   async handle(handlerInput) {
@@ -351,7 +394,57 @@ const YesIntentHandler = {
       Alexa.getIntentName(handlerInput.requestEnvelope) === "AMAZON.YesIntent"
     );
   },
-  handle(handlerInput) {
+  async handle(handlerInput) {
+    const attributesManager = handlerInput.attributesManager;
+    const sessionAttributes = attributesManager.getSessionAttributes();
+
+    // Si está esperando confirmación para limpiar la lista
+    if (sessionAttributes.waitingForClearConfirmation) {
+      // Limpiar el atributo de sesión
+      attributesManager.setSessionAttributes({});
+
+      // Ejecutar la limpieza
+      try {
+        const comprasRef = getComprasRef();
+        const snapshot = await comprasRef.get();
+
+        if (snapshot.empty) {
+          const speakOutput =
+            "Tu despensa ya está vacía. ¿Quieres agregar algunos productos?";
+          return handlerInput.responseBuilder
+            .speak(speakOutput)
+            .reprompt("¿Qué te gustaría hacer?")
+            .getResponse();
+        }
+
+        // Eliminar todos los documentos
+        const batch = db.batch();
+        snapshot.docs.forEach((doc) => {
+          batch.delete(doc.ref);
+        });
+        await batch.commit();
+
+        const count = snapshot.size;
+        const speakOutput = `He limpiado tu despensa. Eliminé ${count} ${
+          count === 1 ? "producto" : "productos"
+        }. ¿Quieres agregar nuevos productos o hacer algo más?`;
+
+        return handlerInput.responseBuilder
+          .speak(speakOutput)
+          .reprompt("¿Qué más te gustaría hacer?")
+          .getResponse();
+      } catch (error) {
+        console.error("Error:", error);
+        const speakOutput =
+          "Lo siento, hubo un error al limpiar la despensa. ¿Quieres intentar de nuevo?";
+        return handlerInput.responseBuilder
+          .speak(speakOutput)
+          .reprompt("¿Qué te gustaría hacer?")
+          .getResponse();
+      }
+    }
+
+    // Respuesta normal cuando no hay confirmación pendiente
     const speakOutput =
       "Perfecto. ¿Qué quieres hacer? Puedes agregar productos, eliminar algo, limpiar la lista o ver qué hay en tu despensa.";
     const repromptOutput = "¿Qué te gustaría hacer con tu despensa?";
@@ -372,6 +465,23 @@ const NoIntentHandler = {
     );
   },
   handle(handlerInput) {
+    const attributesManager = handlerInput.attributesManager;
+    const sessionAttributes = attributesManager.getSessionAttributes();
+
+    // Si está esperando confirmación para limpiar la lista
+    if (sessionAttributes.waitingForClearConfirmation) {
+      // Limpiar el atributo de sesión
+      attributesManager.setSessionAttributes({});
+
+      const speakOutput =
+        "Perfecto, no he limpiado nada. Tu despensa sigue igual. ¿Hay algo más que quieras hacer?";
+      return handlerInput.responseBuilder
+        .speak(speakOutput)
+        .reprompt("¿Qué te gustaría hacer con tu despensa?")
+        .getResponse();
+    }
+
+    // Respuesta normal cuando dice no
     const speakOutput = "¡Perfecto! Tu despensa está lista. ¡Hasta luego!";
     return handlerInput.responseBuilder.speak(speakOutput).getResponse();
   },
@@ -386,8 +496,9 @@ const LaunchRequestHandler = {
   },
   handle(handlerInput) {
     const speakOutput =
-      "¡Bienvenido a la despensa de Daniel, ¿Que quieres hacer?!";
-    const repromptOutput = "";
+      "¡Bienvenido a la despensa de Daniel! ¿Qué quieres hacer?";
+    const repromptOutput =
+      "Puedes agregar productos, ver la lista, eliminar algo o limpiar todo.";
 
     return handlerInput.responseBuilder
       .speak(speakOutput)
@@ -406,7 +517,7 @@ const HelpIntentHandler = {
   },
   handle(handlerInput) {
     const speakOutput =
-      'Con tu despensa inteligente puedes: agregar productos diciendo "agrega leche", eliminar productos diciendo "elimina pan", limpiar toda la lista diciendo "limpia la lista", ver un resumen diciendo "qué hay en la lista", o escuchar toda tu lista completa diciendo "lee toda mi lista". ¿Qué quieres hacer?';
+      'Con tu despensa inteligente puedes: agregar productos diciendo "agrega leche", eliminar productos diciendo "elimina pan", limpiar toda la lista diciendo "limpia la lista", ver un resumen diciendo "qué hay en la lista", o escuchar toda tu lista completa diciendo "lee toda mi lista". También puedes decir "nada" cuando ya no quieras hacer más cosas. ¿Qué quieres hacer?';
 
     return handlerInput.responseBuilder
       .speak(speakOutput)
@@ -449,19 +560,19 @@ const SessionEndedRequestHandler = {
   },
 };
 
-// Manejador de errores
+// Manejador de errores mejorado
 const ErrorHandler = {
   canHandle() {
     return true;
   },
   handle(handlerInput, error) {
     const speakOutput =
-      "Lo siento, tuve problemas para hacer lo que pediste. ¿Quieres intentarlo de nuevo?";
+      "Lo siento, no entendí lo que dijiste. Puedes decir cosas como: agrega leche, elimina pan, ve la lista, o dime nada si ya terminaste. ¿Qué quieres hacer?";
     console.log(`~~~~ Error handled: ${JSON.stringify(error)}`);
 
     return handlerInput.responseBuilder
       .speak(speakOutput)
-      .reprompt("¿Qué te gustaría hacer?")
+      .reprompt("¿Qué te gustaría hacer con tu despensa?")
       .getResponse();
   },
 };
@@ -472,7 +583,9 @@ const skillBuilder = Alexa.SkillBuilders.custom()
     LaunchRequestHandler,
     AddProductIntentHandler,
     RemoveProductIntentHandler,
+    NothingIntentHandler,
     ClearListIntentHandler,
+    ExecuteClearListIntentHandler,
     ListProductsIntentHandler,
     ReadCompleteListIntentHandler,
     YesIntentHandler,
@@ -509,9 +622,10 @@ exports.handler = async (event, context) => {
         features: [
           "Add products",
           "Remove products",
-          "Clear list",
+          "Clear list (with confirmation)",
           "List products (summary)",
           "Read complete list",
+          "Handle 'nothing' responses",
           "Conversational flow",
         ],
         timestamp: new Date().toISOString(),
