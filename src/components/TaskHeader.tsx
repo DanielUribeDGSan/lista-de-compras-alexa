@@ -1,15 +1,13 @@
 import React, { useState } from 'react';
-import { ClipboardCheck, X, AlertTriangle, Search } from 'lucide-react';
-import { useGrocery } from '../context/GroceryContext';
+import { ClipboardCheck, AlertTriangle, Search, X } from 'lucide-react';
+import { useTodo } from '../context/TodoContext';
 
-const Header: React.FC = () => {
-  const { items, deleteAllPurchased, searchQuery, setSearchQuery } = useGrocery();
+const TaskHeader: React.FC = () => {
+  const { pendingCount, completedCount, deleteAllCompleted, searchQuery, setSearchQuery } = useTodo();
   const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const pendingItems = items.filter(item => !item.purchased).length;
-  const purchasedItems = items.filter(item => item.purchased).length;
 
   const handleDeleteAll = async () => {
-    await deleteAllPurchased();
+    await deleteAllCompleted();
     setShowConfirmModal(false);
   };
 
@@ -23,17 +21,17 @@ const Header: React.FC = () => {
         <div className="max-w-lg mx-auto">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-2xl font-semibold text-gray-900">Lista del Super</h1>
+              <h1 className="text-2xl font-semibold text-gray-900">Mis Tareas</h1>
               <p className="text-gray-500 text-sm mt-1">
-                {pendingItems} productos por comprar
+                {pendingCount} {pendingCount === 1 ? 'tarea pendiente' : 'tareas pendientes'}
               </p>
             </div>
             <div className="flex items-center gap-2">
-              {purchasedItems > 0 && (
+              {completedCount > 0 && (
                 <button
                   onClick={() => setShowConfirmModal(true)}
                   className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-full transition-colors duration-200 text-sm font-medium"
-                  title="Limpiar productos completados"
+                  title="Limpiar tareas completadas"
                 >
                   <ClipboardCheck size={16} />
                   <span>Limpiar</span>
@@ -48,7 +46,7 @@ const Header: React.FC = () => {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Buscar productos..."
+              placeholder="Buscar tareas..."
               className="w-full bg-white rounded-xl py-2.5 pl-10 pr-10 text-sm border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all"
             />
             {searchQuery && (
@@ -73,10 +71,10 @@ const Header: React.FC = () => {
               </div>
             </div>
             <h3 className="text-lg font-semibold text-gray-900 text-center mb-2">
-              ¿Eliminar completados?
+              ¿Eliminar completadas?
             </h3>
             <p className="text-gray-500 text-center text-sm mb-6">
-              Se eliminarán {purchasedItems} producto{purchasedItems > 1 ? 's' : ''} marcado{purchasedItems > 1 ? 's' : ''} como completado{purchasedItems > 1 ? 's' : ''}. Esta acción no se puede deshacer.
+              Se eliminarán {completedCount} tarea{completedCount > 1 ? 's' : ''} completada{completedCount > 1 ? 's' : ''}. Esta acción no se puede deshacer.
             </p>
             <div className="flex gap-3">
               <button
@@ -97,6 +95,6 @@ const Header: React.FC = () => {
       )}
     </>
   );
-}
+};
 
-export default Header;
+export default TaskHeader;

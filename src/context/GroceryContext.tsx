@@ -13,12 +13,15 @@ interface GroceryContextType {
   addItem: (item: Omit<GroceryItem, 'id' | 'createdAt'>) => Promise<void>;
   updateItem: (id: string, updates: Partial<GroceryItem>) => Promise<void>;
   deleteItem: (id: string) => Promise<void>;
+  deleteAllPurchased: () => Promise<void>;
   togglePurchased: (id: string) => Promise<void>;
   currentFilter: FilterType;
   setFilter: (filter: FilterType) => void;
   filteredItems: GroceryItem[];
   selectedCategory: Category | 'all';
   setSelectedCategory: (category: Category | 'all') => void;
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
   totalEstimated: number;
   remainingEstimated: number;
   isLoading: boolean;
@@ -31,6 +34,7 @@ export const GroceryProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [items, setItems] = useState<GroceryItem[]>([]);
   const [currentFilter, setCurrentFilter] = useState<FilterType>('all');
   const [selectedCategory, setSelectedCategory] = useState<Category | 'all'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -107,6 +111,21 @@ export const GroceryProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   };
 
+  const deleteAllPurchased = async () => {
+    try {
+      setError(null);
+      const purchasedItems = items.filter(item => item.purchased);
+      // Eliminar de Firestore
+      for (const item of purchasedItems) {
+        await deleteItemFromFirestore(item.id);
+      }
+    } catch (error) {
+      setError('Error al eliminar productos completados.');
+    }
+    // Actualizar estado local (funciona incluso si Firestore falla)
+    setItems(prevItems => prevItems.filter(item => !item.purchased));
+  };
+
   const setFilter = (filter: FilterType) => {
     setCurrentFilter(filter);
   };
@@ -127,13 +146,20 @@ export const GroceryProvider: React.FC<{ children: React.ReactNode }> = ({ child
         return false;
       }
       
+      // Search filter
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase().trim();
+        const nameMatch = item.name.toLowerCase().includes(query);
+        const categoryMatch = item.category.toLowerCase().includes(query);
+        if (!nameMatch && !categoryMatch) {
+          return false;
+        }
+      }
+      
       return true;
     })
     .sort((a, b) => {
-      // Sort by category first, then by purchased status, then by creation date
-      if (a.category !== b.category) {
-        return a.category.localeCompare(b.category);
-      }
+      // Sort by purchased status first (pending items on top), then by creation date
       if (a.purchased !== b.purchased) {
         return a.purchased ? 1 : -1;
       }
@@ -153,12 +179,15 @@ export const GroceryProvider: React.FC<{ children: React.ReactNode }> = ({ child
         addItem,
         updateItem,
         deleteItem,
+        deleteAllPurchased,
         togglePurchased,
         currentFilter,
         setFilter,
         filteredItems,
         selectedCategory,
         setSelectedCategory,
+        searchQuery,
+        setSearchQuery,
         totalEstimated,
         remainingEstimated,
         isLoading,

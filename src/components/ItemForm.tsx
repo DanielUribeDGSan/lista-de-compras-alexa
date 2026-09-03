@@ -125,7 +125,7 @@ const ItemForm: React.FC<ItemFormProps> = ({ onSubmit }) => {
       <button
         type="submit"
         disabled={isSubmitting || !name.trim()}
-        className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-xl font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-xl font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed mb-8"
       >
         {isSubmitting ? 'Agregando...' : 'Agregar Producto'}
       </button>
