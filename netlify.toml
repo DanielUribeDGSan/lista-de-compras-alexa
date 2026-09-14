@@ -3,6 +3,19 @@
   command = "npm run build"
   functions = "netlify/functions"
 
+# Cache control headers - disable caching for HTML and assets to force fresh reload
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+    Pragma = "no-cache"
+    Expires = "0"
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+
 [[headers]]
   for = "/.netlify/functions/*"
   [headers.values]
