@@ -44,15 +44,15 @@ const TaskItem: React.FC<TaskItemProps> = ({ todo }) => {
 
   return (
     <div 
-      className={`ios-list-item flex items-center justify-between transition-all duration-200 ${
+      className={`ios-list-item flex items-start justify-between transition-all duration-200 ${
         isDeleting ? 'opacity-0 transform translate-x-full' : ''
       } ${todo.completed ? 'bg-gray-50' : 'bg-white'}`}
     >
-      <div className="flex items-center gap-3 flex-1">
+      <div className="flex items-start gap-3 flex-1 min-w-0">
         {/* Checkbox */}
         <button
           onClick={() => toggleCompleted(todo.id)}
-          className={`ios-checkbox ${todo.completed ? 'checked' : ''}`}
+          className={`ios-checkbox mt-0.5 ${todo.completed ? 'checked' : ''}`}
           aria-label={todo.completed ? 'Marcar como pendiente' : 'Marcar como completada'}
         >
           {todo.completed && (
@@ -64,11 +64,11 @@ const TaskItem: React.FC<TaskItemProps> = ({ todo }) => {
 
         {/* Task info */}
         <div className="flex-1 min-w-0">
-          <p className={`font-medium text-gray-900 truncate ${todo.completed ? 'line-through text-gray-400' : ''}`}>
+          <p className={`font-medium text-gray-900 break-words ${todo.completed ? 'line-through text-gray-400' : ''}`}>
             {todo.title}
           </p>
           {todo.description && (
-            <p className={`text-sm truncate ${todo.completed ? 'text-gray-300' : 'text-gray-500'}`}>
+            <p className={`text-sm break-words mt-0.5 ${todo.completed ? 'text-gray-300' : 'text-gray-500'}`}>
               {todo.description}
             </p>
           )}
@@ -76,13 +76,13 @@ const TaskItem: React.FC<TaskItemProps> = ({ todo }) => {
       </div>
 
       {/* Priority badge and delete button */}
-      <div className="flex items-center gap-2 ml-2">
-        <span className={`text-xs px-2 py-1 rounded-full font-medium ${getPriorityColor(todo.priority)}`}>
+      <div className="flex items-center gap-2 ml-2 flex-shrink-0">
+        <span className={`text-xs px-2 py-1 rounded-full font-medium whitespace-nowrap ${getPriorityColor(todo.priority)}`}>
           {getPriorityLabel(todo.priority)}
         </span>
         <button
           onClick={handleDelete}
-          className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors duration-200"
+          className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors duration-200 flex-shrink-0"
           aria-label="Eliminar tarea"
         >
           <Trash2 size={18} />
