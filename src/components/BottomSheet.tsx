@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Drawer } from 'vaul';
 
 interface BottomSheetProps {
@@ -8,21 +8,57 @@ interface BottomSheetProps {
   children: React.ReactNode;
 }
 
+const TOP_GAP = 16;
+
+const useKeyboardViewport = (enabled: boolean) => {
+  const [viewport, setViewport] = useState({ bottom: 0, height: 0 });
+
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!enabled || !vv) return;
+
+    const update = () => {
+      const bottom = Math.max(window.innerHeight - vv.height - vv.offsetTop, 0);
+      setViewport({ bottom, height: vv.height });
+    };
+
+    update();
+    vv.addEventListener('resize', update);
+    vv.addEventListener('scroll', update);
+    return () => {
+      vv.removeEventListener('resize', update);
+      vv.removeEventListener('scroll', update);
+    };
+  }, [enabled]);
+
+  return viewport;
+};
+
 const BottomSheet: React.FC<BottomSheetProps> = ({ isOpen, onClose, title, children }) => {
+  const { bottom, height } = useKeyboardViewport(isOpen);
+
+  const handleFocus = (e: React.FocusEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    if (!target.matches('input, textarea, select')) return;
+    // Esperar a que el teclado termine de abrir antes de centrar el campo
+    setTimeout(() => target.scrollIntoView({ block: 'center', behavior: 'smooth' }), 300);
+  };
+
   return (
     <Drawer.Root 
       open={isOpen} 
       onOpenChange={(open) => !open && onClose()}
       shouldScaleBackground={false}
       dismissible={true}
+      repositionInputs={false}
     >
       <Drawer.Portal>
         <Drawer.Overlay className="fixed inset-0 bg-black/40 z-40 transition-opacity duration-300" />
         <Drawer.Content
           className="fixed inset-x-0 bottom-0 z-50 flex flex-col rounded-t-[24px] bg-white"
           style={{
-            // Altura dinámica para acomodar el teclado
-            maxHeight: '90vh',
+            bottom,
+            maxHeight: height ? `${height - TOP_GAP}px` : '90vh',
           }}
         >
           {/* Handle bar para arrastrar */}
@@ -35,8 +71,11 @@ const BottomSheet: React.FC<BottomSheetProps> = ({ isOpen, onClose, title, child
             </Drawer.Title>
           </div>
           
-          {/* Contenido scrolleable con padding bottom para teclado */}
-          <div className="flex-1 overflow-y-auto px-6 py-4 pb-safe">
+          {/* Contenido scrolleable */}
+          <div
+            className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-6 py-4 pb-safe"
+            onFocus={handleFocus}
+          >
             {children}
           </div>
         </Drawer.Content>

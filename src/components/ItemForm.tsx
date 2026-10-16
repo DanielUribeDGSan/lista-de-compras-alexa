@@ -51,6 +51,11 @@ const ItemForm: React.FC<ItemFormProps> = ({ onSubmit }) => {
       <div>
         <input
           type="text"
+          name="producto"
+          autoComplete="off"
+          autoCorrect="on"
+          autoCapitalize="sentences"
+          enterKeyHint="done"
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Nombre del producto"
